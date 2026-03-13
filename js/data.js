@@ -20,9 +20,9 @@ const SYSTEMS = {
 
 const SHIP_TYPES = {
   // Player starts with this - 100 hull, 30 shield, speed 3.2
-  Shuttle:          { maxHull:100, maxShield:30,  speed:3.2, turnRate:0.07, thrust:0.18, color:"#4a9eff", size:14, damage:12 },
-  Fighter:          { maxHull:55,  maxShield:20,  speed:2.9, turnRate:0.10, thrust:0.26, color:"#ff5a3c", size:12, damage:10 },
-  Gunship:          { maxHull:110, maxShield:60,  speed:2.6, turnRate:0.06, thrust:0.18, color:"#4aff9a", size:16, damage:14 },
+  Shuttle:          { maxHull:100, maxShield:30,  speed:3.2, turnRate:0.07, thrust:0.18, color:"#4a9eff", size:14, damage:12, cargoCapacity:20 },
+  Fighter:          { maxHull:55,  maxShield:20,  speed:2.9, turnRate:0.10, thrust:0.26, color:"#ff5a3c", size:12, damage:10, cargoCapacity:10 },
+  Gunship:          { maxHull:110, maxShield:60,  speed:2.6, turnRate:0.06, thrust:0.18, color:"#4aff9a", size:16, damage:14, cargoCapacity:30 },
   // Centaurian ships — all slower than player (3.2), scaling down by class
   CentaurianFighter:{ maxHull:45,  maxShield:15,  speed:2.8, turnRate:0.11, thrust:0.26, color:"#4a9eff", size:22, drawSize:56,  sprite:"fighter", imgW:1024, imgH:1536, imgCx:510, imgCy:691,  damage:8  },
   CentaurianCruiser:{ maxHull:120, maxShield:50,  speed:2.2, turnRate:0.07, thrust:0.18, color:"#4a9eff", size:28, drawSize:80,  sprite:"cruiser", imgW:1024, imgH:1536, imgCx:511, imgCy:694,  damage:14 },
