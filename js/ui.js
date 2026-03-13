@@ -469,13 +469,199 @@ function renderFactions(){
   el.innerHTML=html;
 }
 
+// ── TRADING ──────────────────────────────────────────────────────────────────
+
+let _tradeCategory = 'all';
+let _tradeSelected = null;
+
 function renderTrading(){
-  document.getElementById("trading-content").innerHTML=`
-    <div class="stub-panel">
-      <div class="stub-icon">⬡</div>
-      <div class="stub-title">TRADING POST</div>
-      <div class="stub-desc">The galactic economy is being established.<br>Resources, commodities and trade routes coming soon.</div>
+  const listings = typeof getMarketListings === 'function' ? getMarketListings() : [];
+  const cargoCount = typeof getCargoCount === 'function' ? getCargoCount() : 0;
+  const cargoMax = player.cargoCapacity || 20;
+  const profType = typeof getSystemProfileType === 'function' ? getSystemProfileType(systemKey) : '';
+  const isBlackMarket = profType === 'pirate_world' || profType === 'pirate_station';
+
+  // Build category tab list from what's actually available
+  const cats = ['all', ...new Set(listings.map(l => l.category))];
+
+  const filtered = _tradeCategory === 'all'
+    ? listings
+    : listings.filter(l => l.category === _tradeCategory);
+
+  const catLabels = {
+    all:'ALL', raw_materials:'RAW MAT.', agricultural:'AGRI.',
+    chemicals:'CHEM.', manufactured:'MFG.', consumer_goods:'CONSUMER',
+    advanced_tech:'TECH', contraband:'⚠ BLACK MKT'
+  };
+
+  const catTabs = cats.map(c => `
+    <button class="trade-cat-btn${_tradeCategory===c?' active':''}"
+      onclick="_tradeCategory='${c}';renderTrading()">
+      ${catLabels[c]||c.toUpperCase()}
+    </button>`).join('');
+
+  // Resource rows
+  const rows = filtered.map(l => {
+    const isSel = _tradeSelected === l.resourceId;
+    const profitPer = l.pricePaid ? l.price - l.pricePaid : null;
+    const profitStr = profitPer !== null
+      ? `<span class="trade-profit ${profitPer>=0?'pos':'neg'}">${profitPer>=0?'+':''}${profitPer} Cr/u</span>`
+      : '';
+    const trendCol = l.trend > 0 ? '#ff6644' : l.trend < 0 ? '#4aff9a' : '#556677';
+    const stockPct = Math.round(l.stock);
+    const stockCol = stockPct > 60 ? '#4aff9a' : stockPct > 25 ? '#ffcc44' : '#ff4444';
+
+    return `
+      <div class="trade-row${isSel?' selected':''}${l.contraband?' contraband':''}"
+        onclick="_tradeSelected=_tradeSelected==='${l.resourceId}'?null:'${l.resourceId}';renderTrading()">
+        <div class="tr-name">${l.name}${l.contraband?' ⚠':''}</div>
+        <div class="tr-cat">${catLabels[l.category]||l.category}</div>
+        <div class="tr-price">${l.price.toLocaleString()} Cr</div>
+        <div class="tr-trend" style="color:${trendCol}">${typeof trendIcon==='function'?trendIcon(l.trend):'–'}</div>
+        <div class="tr-stock">
+          <div class="tr-stock-bar-wrap">
+            <div class="tr-stock-bar" style="width:${stockPct}%;background:${stockCol}"></div>
+          </div>
+          <span class="tr-stock-num">${stockPct}</span>
+        </div>
+        <div class="tr-cargo">${l.cargoQty > 0 ? `×${l.cargoQty}` : '—'}${profitStr}</div>
+      </div>`;
+  }).join('');
+
+  // Detail / buy-sell panel for selected resource
+  let detailHTML = `<div class="trade-detail-empty">Select a resource to trade.</div>`;
+  if(_tradeSelected){
+    const l = listings.find(x => x.resourceId === _tradeSelected);
+    if(l){
+      const canBuyMax = Math.min(
+        Math.floor(state.credits / l.price),
+        cargoMax - cargoCount,
+        Math.floor(l.stock)
+      );
+      const canSellMax = l.cargoQty || 0;
+      const profitPer = l.pricePaid ? l.price - l.pricePaid : null;
+      const profitStr = profitPer !== null
+        ? `<span class="trade-profit ${profitPer>=0?'pos':'neg'}">(${profitPer>=0?'+':''}${profitPer} Cr/u vs buy price)</span>`
+        : '';
+
+      detailHTML = `
+        <div class="trade-detail">
+          <div class="td-name">${l.name}${l.contraband?' <span style="color:#ff6644">⚠ CONTRABAND</span>':''}</div>
+          <div class="td-stats">
+            <div class="td-stat"><span class="tds-label">PRICE</span><span class="tds-val">${l.price.toLocaleString()} Cr/u</span></div>
+            <div class="td-stat"><span class="tds-label">STOCK</span><span class="tds-val">${Math.floor(l.stock)}</span></div>
+            <div class="td-stat"><span class="tds-label">TREND</span><span class="tds-val">${typeof trendIcon==='function'?trendIcon(l.trend):'–'}</span></div>
+            <div class="td-stat"><span class="tds-label">IN HOLD</span><span class="tds-val">${l.cargoQty} u ${profitStr}</span></div>
+          </div>
+          <div class="td-actions">
+            <div class="td-buy-sell">
+              <span class="tds-label">QTY</span>
+              <button class="trade-qty-btn" onclick="tradingAdjQty(-5)">−5</button>
+              <button class="trade-qty-btn" onclick="tradingAdjQty(-1)">−</button>
+              <span class="trade-qty-val" id="trade-qty-display">1</span>
+              <button class="trade-qty-btn" onclick="tradingAdjQty(1)">+</button>
+              <button class="trade-qty-btn" onclick="tradingAdjQty(5)">+5</button>
+              <button class="trade-qty-btn max" onclick="tradingSetMax(${canBuyMax})">MAX BUY</button>
+            </div>
+            <div class="td-btns">
+              <button class="hub-action-btn green" ${canBuyMax<=0?'disabled':''} onclick="tradingBuy()">
+                ▼ BUY &nbsp;<span id="trade-buy-cost">—</span>
+              </button>
+              <button class="hub-action-btn ${canSellMax<=0?'':'yellow'}" ${canSellMax<=0?'disabled':''} onclick="tradingSell()">
+                ▲ SELL &nbsp;<span id="trade-sell-earn">—</span>
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+  }
+
+  document.getElementById("trading-content").innerHTML = `
+    <div class="trading-panel">
+      <div class="trading-header-row">
+        <div class="trade-location">
+          ⬡ ${SYSTEMS[systemKey].name.toUpperCase()} ${isBlackMarket?'<span class="trade-bm-badge">BLACK MARKET</span>':''}
+        </div>
+        <div class="trade-cargo-status">
+          CARGO: <span class="${cargoCount>=cargoMax?'trade-cargo-full':''}">${cargoCount}/${cargoMax}</span>
+          &nbsp;·&nbsp; CREDITS: <span style="color:#ffcc44">${state.credits.toLocaleString()} Cr</span>
+        </div>
+      </div>
+
+      <div class="trade-cat-tabs">${catTabs}</div>
+
+      <div class="trade-table-wrap">
+        <div class="trade-table-header">
+          <span>RESOURCE</span><span>CAT.</span><span>PRICE</span>
+          <span>TREND</span><span>STOCK</span><span>IN HOLD</span>
+        </div>
+        <div class="trade-rows" id="trade-rows-list">
+          ${rows.length ? rows : '<div class="cargo-empty">No resources available here.</div>'}
+        </div>
+      </div>
+
+      <div class="trade-detail-wrap" id="trade-detail-wrap">
+        ${detailHTML}
+      </div>
     </div>`;
+
+  updateTradeCosts();
+}
+
+let _tradeQty = 1;
+
+function tradingAdjQty(delta){
+  const listings = typeof getMarketListings === 'function' ? getMarketListings() : [];
+  const l = listings.find(x => x.resourceId === _tradeSelected);
+  const cargoMax = player.cargoCapacity || 20;
+  const cargoCount = typeof getCargoCount === 'function' ? getCargoCount() : 0;
+  const maxBuy = l ? Math.min(Math.floor(state.credits / l.price), cargoMax - cargoCount, Math.floor(l.stock)) : 1;
+  _tradeQty = Math.max(1, Math.min(_tradeQty + delta, Math.max(maxBuy, l ? l.cargoQty : 1)));
+  updateTradeCosts();
+}
+
+function tradingSetMax(max){
+  _tradeQty = Math.max(1, max);
+  updateTradeCosts();
+}
+
+function updateTradeCosts(){
+  const qtyEl = document.getElementById("trade-qty-display");
+  const buyEl  = document.getElementById("trade-buy-cost");
+  const sellEl = document.getElementById("trade-sell-earn");
+  if(!qtyEl) return;
+  qtyEl.textContent = _tradeQty;
+  const listings = typeof getMarketListings === 'function' ? getMarketListings() : [];
+  const l = listings.find(x => x.resourceId === _tradeSelected);
+  if(l){
+    if(buyEl)  buyEl.textContent  = (l.price * _tradeQty).toLocaleString() + ' Cr';
+    if(sellEl) sellEl.textContent = (l.price * _tradeQty).toLocaleString() + ' Cr';
+  }
+}
+
+function tradingBuy(){
+  if(!_tradeSelected) return;
+  const result = buyResource(_tradeSelected, _tradeQty);
+  showToast(result.success ? `✅ ${result.message}` : `⚠ ${result.message}`);
+  document.getElementById("hub-credits").textContent = state.credits.toLocaleString() + " Cr";
+  _tradeQty = 1;
+  renderTrading();
+}
+
+function tradingSell(){
+  if(!_tradeSelected) return;
+  const result = sellResource(_tradeSelected, _tradeQty);
+  if(result.success){
+    const profitStr = result.profit >= 0
+      ? `+${result.profit.toLocaleString()} Cr profit`
+      : `${result.profit.toLocaleString()} Cr loss`;
+    showToast(`✅ ${result.message} (${profitStr})`);
+  } else {
+    showToast(`⚠ ${result.message}`);
+  }
+  document.getElementById("hub-credits").textContent = state.credits.toLocaleString() + " Cr";
+  _tradeQty = 1;
+  renderTrading();
 }
 
 // ── SHIPYARD (STUB) ───────────────────────────────────────────────────────────
