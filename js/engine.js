@@ -176,6 +176,7 @@ const player = {
   hull:100, maxHull:100, shield:30, maxShield:30,
   speed:3.2, turnRate:0.07, thrust:0.18,
   shipType:"Shuttle", shootCooldown:0,
+  cargoCapacity: 20,   // ← add this
 };
 const state = {
   credits:5000, fuel:10, maxFuel:10,
