@@ -22,6 +22,7 @@ function buildSaveData() {
     player: { hull:player.hull, maxHull:player.maxHull, shield:player.shield, maxShield:player.maxShield,
               speed:player.speed, turnRate:player.turnRate, thrust:player.thrust, shipType:player.shipType },
     state: JSON.parse(JSON.stringify(state)),
+    economyState: JSON.parse(JSON.stringify(economyState)),  // ← add this line
   };
 }
 function loadSaveData(data) {
