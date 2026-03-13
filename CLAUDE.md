@@ -1,6 +1,7 @@
 # CLAUDE.md — AI Assistant Instructions for The Final Frontier
 
 > Paste this file's contents at the start of any new Claude conversation to get up to speed instantly.
+> Also paste `economy-reference.md` when working on the economy or trading system.
 
 ---
 
@@ -20,14 +21,15 @@ styles.css              ← In-flight HUD CSS, galaxy map, start screen CSS
 js/
   audio.js              ← Web Audio thruster + SFX engine
   data.js               ← SYSTEMS, SHIP_TYPES, ENEMY_CFGS, ASTEROID_SIZES
+  economy.js            ← Trading economy: resources, supply/demand, prices, black market
   engine.js             ← State vars, save/load, canvas setup, world init
   render.js             ← Game loop, draw functions, asteroids, missions
   input.js              ← Keyboard, touch, event handlers, updateHUD(), showToast()
-  ui.js                 ← Hub screen, dock flow, galaxy map, jump system (v5)
+  ui.js                 ← Hub screen, dock flow, galaxy map, jump system
   main.js               ← Boot only (< 1KB)
   sprites/
     centaurian.js       ← CENTAURIAN_B64 object: fighter/cruiser/frigate/capital (4.3MB)
-    player.js           ← SHIP_B64 string + NOZZLES + flame config (430KB) — ?v=9
+    player.js           ← SHIP_B64 string + NOZZLES + flame config (430KB) — ?v=10
     environment.js      ← PLANET_B64 + STATION_B64 strings (4.1MB)
 ```
 
@@ -39,9 +41,13 @@ js/
 
 | File | Version |
 |------|---------|
-| `js/sprites/player.js` | `?v=9` |
+| `js/sprites/player.js` | `?v=10` |
 | `js/sprites/environment.js` | *(no version)* |
-| `js/ui.js` | `?v=6` |
+| `js/ui.js` | `?v=12` |
+| `js/input.js` | `?v=2` |
+| `js/engine.js` | `?v=2` |
+| `js/render.js` | `?v=11` |
+| `js/economy.js` | *(no version — new file)* |
 
 Increment `?v=N` on any file that changes to force browser cache refresh.
 
@@ -50,17 +56,23 @@ Increment `?v=N` on any file that changes to force browser cache refresh.
 ## Key Variables & Architecture
 
 ### Global State (engine.js)
-- `player` — ship object: `{x, y, vx, vy, angle, hull, shield, maxHull, maxShield, speed, thrust, turnRate, shipType, damage, mods{}}`
+- `player` — ship object: `{x, y, vx, vy, angle, hull, shield, maxHull, maxShield, speed, thrust, turnRate, shipType, damage, cargoCapacity, mods{}}`
 - `state` — game flags: `{credits, fuel, maxFuel, reputation{}, missions[], activeMission, kills, ownedStations{}, cargo{}, storedShips[]}`
 - `systemKey` — current star system key (e.g. `"sol"`, `"vega"`)
 - `enemies[]`, `asteroids[]`, `bullets[]`, `particles[]` — live entity arrays
 
 ### Game Data (data.js)
 - `SYSTEMS` — 13 star systems with `{name, x, y, faction, desc, neighbors[], hasShipyard?}`
-- `SHIP_TYPES` — player and enemy ship stat blocks
+- `SHIP_TYPES` — player and enemy ship stat blocks, now includes `cargoCapacity` on player ships
 - `CENTAURIAN_FLEET` — spawn weights for alien enemies
 - `ENEMY_CFGS` — faction-based enemy configurations
 - `ASTEROID_SIZES` — small/medium/large radius, HP, damage
+
+### Economy (economy.js)
+- `economyState` — `{ [systemKey]: { [resourceId]: { stock, price, trend } } }`
+- `RESOURCES` — master catalogue of 70 resources across 7 categories
+- `LOCATION_PROFILES` — economic profiles for all planet/station types
+- See `economy-reference.md` for full documentation
 
 ### Sprites (sprites/)
 - `centaurianImgs` — object keyed by `"fighter"`, `"cruiser"`, `"frigate"`, `"capital"`
@@ -68,13 +80,90 @@ Increment `?v=N` on any file that changes to force browser cache refresh.
 - `planetSprite`, `stationSprite` — environment Image objects
 
 ### Render Pipeline (render.js)
-- Main loop: `gameLoop()` → `update()` → `draw()`
+- Main loop: `tick()` handles update + draw in one pass
 - Draw order: stars → asteroids → station → planet → enemies → player → bullets → particles → HUD
 - Asteroid system uses pre-rendered offscreen canvases (`ASTEROID_VISUAL_DEFS`)
 - Station sprite uses **`screen` blend mode** — black background PNG, no alpha needed
 - Station renders at **200×200px** in all systems
 - **Velocity arrow removed**
 - **Retro thruster visuals removed** (data still in `player.js` for future use)
+
+---
+
+## Economy System
+
+### Script Load Order (index.html)
+```html
+<script src="js/data.js"></script>
+<script src="js/economy.js"></script>   ← must be after data.js, before engine.js
+<script src="js/engine.js?v=2"></script>
+```
+
+### Initialisation (engine.js)
+- `initAllEconomy()` called in `resetToFreshState()` — new pilots start with fresh economy
+- `loadSaveData()` restores `economyState` from save, or calls `initAllEconomy()` if no save exists
+
+### Game Loop Hook (render.js)
+- `tickEconomy()` called inside `tick()` just before dock detection (~line 774)
+- Wrapped in `typeof` guard: `if (typeof tickEconomy === 'function') tickEconomy();`
+
+### Cargo Capacity
+- `player.cargoCapacity` — set on the `player` object in `engine.js` (default: 20)
+- Also defined per ship in `SHIP_TYPES` in `data.js`: Shuttle=20, Fighter=10, Gunship=30
+- `state.cargo{}` — keyed by resourceId: `{ quantity, pricePaid }`
+
+### Contraband Check
+- Call `contrabandCheck()` in `dockShip()` in `ui.js` after dock is confirmed
+- Only fires at `military_station` profile locations
+- 70% detection chance — confiscates cargo, fines player, hits faction reputation
+
+### Key Economy Functions
+| Function | Description |
+|----------|-------------|
+| `initAllEconomy()` | Bootstrap all 13 systems — call at game start |
+| `tickEconomy()` | Called every frame from `tick()` in render.js |
+| `getMarketListings()` | Returns sorted market array for current system |
+| `buyResource(id, qty)` | Returns `{success, message, cost}` |
+| `sellResource(id, qty)` | Returns `{success, message, earned, profit}` |
+| `contrabandCheck()` | Run on dock at military stations |
+| `getCargoCount()` | Total units in cargo hold |
+| `trendIcon(trend)` | Returns ▲ / ▼ / – for UI |
+| `trendClass(trend)` | Returns CSS class name for trend colour |
+
+### System Profile Mapping
+Defined in `getSystemProfileType()` in `economy.js`. Maps each systemKey to a `LOCATION_PROFILES` type:
+
+| System Key | Profile | System Name |
+|------------|---------|-------------|
+| `sol` | `trading_hub` | Alpha Centauri |
+| `proxima` | `mining_world` | Proxima |
+| `barnard` | `agricultural_world` | Barnard |
+| `sirius` | `trading_hub` | Sirius |
+| `luyten` | `colony_world` | Luyten |
+| `ross` | `military_station` | Ross |
+| `vega` | `pirate_world` | Vega |
+| `altair` | `military_station` | Altair |
+| `wolf` | `pirate_station` | Wolf |
+| `epsilon` | `mining_station` | Epsilon |
+| `kruger` | `refinery_station` | Kruger |
+| `fomalhaut` | `trading_hub` | Fomalhaut |
+| `deneb` | `pirate_world` | Deneb |
+
+### Trading UI (ui.js) — NEXT TO BUILD
+- `hubOpen('trading')` currently a stub — needs full market UI
+- Call `getMarketListings()` to get resources for current system
+- Use `buyResource(id, qty)` and `sellResource(id, qty)` for buttons
+- Paste `ui.js` + both reference docs when building this panel
+
+### Save/Load Economy (engine.js) — NOT YET BUILT
+```js
+// In buildSaveData():
+save.economyState = JSON.parse(JSON.stringify(economyState));
+
+// In loadSaveData():
+if (data.economyState) economyState = data.economyState;
+else initAllEconomy();
+```
 
 ---
 
@@ -93,7 +182,7 @@ The dock screen is a full-screen overlay (`#stationscreen`) that replaces the ol
 enterDock() → hubOpen(null)           ← shows hub landing with 4 service cards
 hubOpen('hangar')                     ← opens Hangar panel
 hubOpen('missions')                   ← opens Missions panel
-hubOpen('trading')                    ← opens Trading stub
+hubOpen('trading')                    ← opens Trading panel (stub — needs building)
 hubOpen('shipyard')                   ← opens Shipyard stub
 ```
 
@@ -168,10 +257,10 @@ with open("index.html","w") as f:
 ## Jump System (ui.js)
 
 ### In-Flight Jump Flow
-1. Player opens Galaxy Map (`G` key or button), clicks a destination system
+1. Player opens Galaxy Map (`G` or `M` key or button), clicks a destination system
 2. If **in flight**: `plotRoute(destKey)` stores `_plottedRoute`, jump HUD appears at screen bottom
 3. `#jump-route-hud` shows destination + fuel cost, pulses blue
-4. Player presses **⬡ JUMP** → `executeJump()` → `triggerJumpEffect(destKey, jumps)`
+4. Player presses **⬡ JUMP** or `J` key → `executeJump()` → `triggerJumpEffect(destKey, jumps)`
 5. BSG-style jump effect (3.1 seconds total):
    - **0–800ms**: "JUMP DRIVE SPOOLING" overlay fades in
    - **800–1400ms**: Warning text + pulsing icon
@@ -221,6 +310,7 @@ with open("index.html","w") as f:
 
 ### Add a new star system
 Edit `SYSTEMS` in `data.js`. Add key with `{name, x, y, faction, desc, neighbors[], hasShipyard?}`.
+Also add the new key to `getSystemProfileType()` in `economy.js`.
 
 ### Fix a system's planet/station positions
 Edit `FIXED_LAYOUTS` in `engine.js` (inside `initWorld()`). Currently fixed: `sol` (Alpha Centauri).
@@ -245,6 +335,13 @@ Edit `render.js` around `// ── MISSION SYSTEM`.
 
 ### Add new sound effect
 Edit `audio.js` — Web Audio API only, no external files.
+
+### Change a system's economy profile
+Edit `getSystemProfileType()` in `economy.js`. See `economy-reference.md` for available profile types.
+
+### Add a new resource
+Add to `RESOURCES` in `economy.js` with `{id, name, category, basePrice, contraband?}`.
+Add the resource id to relevant `produces[]` / `consumes[]` arrays in `LOCATION_PROFILES`.
 
 ---
 
@@ -337,13 +434,16 @@ Deployed from `main` branch root. Live ~30 seconds after commit. No build step.
 
 ## Pending / Planned Features
 
-- **Trading system** — buy/sell resources, tiered economy (common/rare/exotic/unique), supply/demand
+- **Trading UI** — build out `hubOpen('trading')` in `ui.js` using `getMarketListings()`, `buyResource()`, `sellResource()`
+- **Economy save/load** — persist `economyState` in pilot save data in `engine.js`
+- **Contraband dock check** — call `contrabandCheck()` in `dockShip()` in `ui.js`
 - **Shipyard** — buy ships + modules; only at `hasShipyard: true` systems
 - **Bullet spawn refactor** — iterate `player.equippedWeapons` instead of hardcoding wing ports
 - **Nose cannon upgrade** — add `"forward_weapon"` to `player.equippedWeapons` via shipyard
 - **Fixed layouts for other systems** — only `sol` fixed currently
 - **Per-faction hub backgrounds** — different images per faction/system type
 - **Module graphics** — small icons per module category for modification slots
+- **NPC traders** — freighters flying trade routes, shifting stock at both ends
 
 ---
 
@@ -351,19 +451,29 @@ Deployed from `main` branch root. Live ~30 seconds after commit. No build step.
 
 - Pilots stored in `localStorage` keyed by pilot name
 - `state.storedShips[]` persists ship fleet across sessions
-- `state.cargo{}` persists cargo hold contents
+- `state.cargo{}` persists cargo hold contents — keyed by resourceId: `{ quantity, pricePaid }`
+- `economyState` not yet persisted — resets on each page load (save/load to be built)
 - Players with saves pre-dating `FIXED_LAYOUTS` need to clear save once to get fixed positions
-
 
 ---
 
-## Latest Update — v0.20
+## Version History
 
-- Fixed Galaxy Map rendering by showing the overlay before drawing the canvas, preventing the blank/vanished map issue.
-- Launching from a station or planet now always returns to the normal flight screen and forcibly closes the Galaxy Map overlay.
-- Galaxy Map route plotting is now route-only from the map confirm button, including while docked.
-- Out-of-range destinations can no longer be plotted; they show an out-of-range warning instead.
-- Added/strengthened in-flight Galaxy Map access with a dedicated top-bar button plus `M` keyboard shortcut.
+### v0.21 — Economy System Integration
+- Added `js/economy.js` — 70-resource dynamic trading economy
+- `initAllEconomy()` called in `resetToFreshState()` and `loadSaveData()` in `engine.js`
+- `tickEconomy()` hooked into `tick()` in `render.js` (before dock detection)
+- Added `cargoCapacity` to player ships in `data.js`: Shuttle=20, Fighter=10, Gunship=30
+- Added `cargoCapacity: 20` to `player` object in `engine.js`
+- Added `cargo: {}` to `state` object in `engine.js`
+- Script load order: `data.js` → `economy.js` → `engine.js`
+
+### v0.20
+- Fixed Galaxy Map rendering by showing the overlay before drawing the canvas.
+- Launching from a station or planet now always returns to the normal flight screen.
+- Galaxy Map route plotting is now route-only from the map confirm button.
+- Out-of-range destinations can no longer be plotted.
+- Added in-flight Galaxy Map access with dedicated button plus `M` keyboard shortcut.
 - Added `J` keyboard shortcut for executing a plotted jump in flight mode.
 - Flight Galaxy Map button now shows a route-set state when a valid route is plotted.
 - Docked navigation order updated so MAIN MENU is now the far-right button.
