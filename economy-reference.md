@@ -1,6 +1,6 @@
 # The Final Frontier — Economy System Reference
 
-> Paste alongside CLAUDE.md at the start of any new session when working on the economy.
+> Paste alongside CLAUDE.md at the start of any new session when working on the economy or trading UI.
 
 ---
 
@@ -13,69 +13,158 @@ The economy is a dynamic supply/demand trading system. Each star system has an e
 ## File
 
 **`js/economy.js`** — single self-contained file, vanilla JS, no imports/exports.
-Load in `index.html` after `data.js` and before `ui.js`.
 
+### Script Load Order
 ```html
 <script src="js/data.js"></script>
-<script src="js/economy.js"></script>
-<script src="js/engine.js"></script>
+<script src="js/economy.js"></script>   ← after data.js, before engine.js
+<script src="js/engine.js?v=2"></script>
 ```
 
 ---
 
-## Resource Catalogue (70 resources across 7 categories)
+## Integration Status — ALL COMPLETE ✅
+
+| Step | Description | File | Status |
+|------|-------------|------|--------|
+| 1 | Add `economy.js` script tag | `index.html` | ✅ Done |
+| 2 | Call `initAllEconomy()` at game start | `engine.js` | ✅ Done |
+| 3 | Hook `tickEconomy()` into game loop | `render.js` | ✅ Done |
+| 4 | Add `cargoCapacity` to ships and player | `data.js` / `engine.js` | ✅ Done |
+| 5 | Call `contrabandCheck()` on dock | `ui.js` | ✅ Done |
+| 6 | System profile mappings confirmed | `economy.js` | ✅ Done |
+| 7 | Trading UI panel built | `ui.js` | ✅ Done |
+| 8 | Economy save/load | `engine.js` | ✅ Done |
+
+---
+
+## Resource Catalogue — 70 Resources across 7 Categories
 
 ### Raw Materials (10)
-Iron Ore, Titanium Ore, Copper Ore, Rare Earth Metals, Silicate Rock, Raw Crystals, Gold Ore, Radioactive Ore, Raw Carbon, Exotic Matter
+| ID | Name | Base Price |
+|----|------|-----------|
+| `iron_ore` | Iron Ore | 40 Cr |
+| `titanium_ore` | Titanium Ore | 90 Cr |
+| `copper_ore` | Copper Ore | 55 Cr |
+| `rare_earth` | Rare Earth Metals | 180 Cr |
+| `silicate` | Silicate Rock | 25 Cr |
+| `crystals` | Raw Crystals | 120 Cr |
+| `gold_ore` | Gold Ore | 210 Cr |
+| `radioactive` | Radioactive Ore | 160 Cr |
+| `carbon_raw` | Raw Carbon | 30 Cr |
+| `exotic_matter` | Exotic Matter | 500 Cr |
 
 ### Agricultural (10)
-Grain, Protein Packs, Luxury Foods, Stimulants, Medicinal Herbs, Hydroponic Kits, Live Cultures, Algae Mass, Ration Packs, Exotic Spices
+| ID | Name | Base Price |
+|----|------|-----------|
+| `grain` | Grain | 30 Cr |
+| `protein_pack` | Protein Packs | 55 Cr |
+| `luxury_food` | Luxury Foods | 140 Cr |
+| `stimulants` | Stimulants | 90 Cr |
+| `med_herbs` | Medicinal Herbs | 75 Cr |
+| `hydroponic_kit` | Hydroponic Kits | 110 Cr |
+| `live_cultures` | Live Cultures | 95 Cr |
+| `algae_mass` | Algae Mass | 20 Cr |
+| `ration_packs` | Ration Packs | 45 Cr |
+| `spices` | Exotic Spices | 170 Cr |
 
 ### Chemicals & Liquids (10)
-Fuel Compound, Refined Water, Industrial Acid, Coolant Fluid, Noble Gas, Lubricants, Industrial Solvent, Reactive Agent, Liquid Oxygen, Polymer Base
+| ID | Name | Base Price |
+|----|------|-----------|
+| `fuel_compound` | Fuel Compound | 60 Cr |
+| `water_refined` | Refined Water | 20 Cr |
+| `industrial_acid` | Industrial Acid | 80 Cr |
+| `coolant` | Coolant Fluid | 65 Cr |
+| `noble_gas` | Noble Gas | 100 Cr |
+| `lubricants` | Lubricants | 50 Cr |
+| `solvent` | Industrial Solvent | 70 Cr |
+| `reactive_agent` | Reactive Agent | 130 Cr |
+| `liquid_oxygen` | Liquid Oxygen | 85 Cr |
+| `polymer_base` | Polymer Base | 55 Cr |
 
 ### Manufactured Components (10)
-Circuit Boards, Hull Plating, Mechanical Parts, Wiring Looms, Industrial Filters, Power Cells, Servo Motors, Optical Lenses, Pressure Valves, Alloy Sheets
+| ID | Name | Base Price |
+|----|------|-----------|
+| `circuit_board` | Circuit Boards | 150 Cr |
+| `hull_plating` | Hull Plating | 200 Cr |
+| `mech_parts` | Mechanical Parts | 120 Cr |
+| `wiring_loom` | Wiring Looms | 90 Cr |
+| `filters` | Industrial Filters | 70 Cr |
+| `power_cells` | Power Cells | 110 Cr |
+| `servo_motors` | Servo Motors | 135 Cr |
+| `optical_lens` | Optical Lenses | 160 Cr |
+| `pressure_valve` | Pressure Valves | 85 Cr |
+| `alloy_sheets` | Alloy Sheets | 175 Cr |
 
 ### Consumer Goods (10)
-Clothing, Entertainment, Furniture, Appliances, Luxury Goods, Basic Tools, Medical Supplies, Technical Manuals, Personal Tech, Hygiene Packs
+| ID | Name | Base Price |
+|----|------|-----------|
+| `clothing` | Clothing | 80 Cr |
+| `entertainment` | Entertainment | 100 Cr |
+| `furniture` | Furniture | 120 Cr |
+| `appliances` | Appliances | 150 Cr |
+| `luxury_goods` | Luxury Goods | 300 Cr |
+| `tools_basic` | Basic Tools | 65 Cr |
+| `med_supplies` | Medical Supplies | 140 Cr |
+| `textbooks` | Technical Manuals | 90 Cr |
+| `personal_tech` | Personal Tech | 200 Cr |
+| `hygiene_packs` | Hygiene Packs | 40 Cr |
 
 ### Advanced Technology (10)
-AI Core, Navigation System, Medical Equipment, Scanner Array, Weapon Components, Shield Emitter, Jump Drive Coil, Sensor Suite, Fusion Cell, Holo Display
+| ID | Name | Base Price |
+|----|------|-----------|
+| `ai_core` | AI Core | 800 Cr |
+| `nav_system` | Navigation System | 500 Cr |
+| `med_equipment` | Medical Equipment | 400 Cr |
+| `scanner_array` | Scanner Array | 350 Cr |
+| `weapon_comp` | Weapon Components | 450 Cr |
+| `shield_emitter` | Shield Emitter | 600 Cr |
+| `jump_coil` | Jump Drive Coil | 700 Cr |
+| `sensor_suite` | Sensor Suite | 380 Cr |
+| `fusion_cell` | Fusion Cell | 550 Cr |
+| `holo_display` | Holo Display | 320 Cr |
 
 ### Contraband — Black Market Only (7)
-Narcotics, Illegal Weapons, Stolen Tech, Forged Documents, Smuggled Goods, Experimental Bioware, Pirate Intel
+| ID | Name | Base Price |
+|----|------|-----------|
+| `narcotics` | Narcotics | 400 Cr |
+| `illegal_weapons` | Illegal Weapons | 600 Cr |
+| `stolen_tech` | Stolen Tech | 750 Cr |
+| `forged_docs` | Forged Documents | 300 Cr |
+| `smuggled_goods` | Smuggled Goods | 250 Cr |
+| `exp_bioware` | Experimental Bioware | 900 Cr |
+| `pirate_intel` | Pirate Intel | 500 Cr |
 
 ---
 
-## Planet Types
+## Planet & Station Types
 
-| Type | Produces | Consumes |
-|------|----------|----------|
-| **Mining World** | Raw metals, ores, crystals | Food, consumer goods, medical, components |
-| **Agricultural World** | Food, organics, medicines | Machinery, tech, fuel |
-| **Industrial World** | Manufactured components, consumer goods | Raw materials, chemicals, food |
-| **Tech World** | Advanced technology, AI, medical equipment | Rare earth, crystals, circuit boards |
-| **Ocean / Gas World** | Liquids, gases, fuel, chemicals | Components, tech, food |
-| **Colony / Frontier World** | Nothing (needs everything) | Food, tools, medicine, components |
-| **Barren / Hostile World** | Exotic/rare ores only | Rations, fuel, medical |
-| **Pirate World** | Contraband (black market) | Fuel, rations, weapons |
+### Planet Types
 
----
+| Type | Produces | Consumes | Black Market |
+|------|----------|----------|-------------|
+| `mining_world` | Raw metals, ores, crystals | Food, consumer goods, medical, components | No |
+| `agricultural_world` | Food, organics, medicines | Machinery, tech, fuel | No |
+| `industrial_world` | Manufactured components, consumer goods | Raw materials, chemicals, food | No |
+| `tech_world` | Advanced technology, AI, medical equipment | Rare earth, crystals, circuit boards | No |
+| `ocean_world` | Liquids, gases, fuel, chemicals | Components, tech, food | No |
+| `colony_world` | Nothing — needs everything | Food, tools, medicine, components | No |
+| `barren_world` | Exotic/rare ores only | Rations, fuel, medical | No |
+| `pirate_world` | Contraband | Fuel, rations, weapons | ✅ Yes |
 
-## Station Types
+### Station Types
 
 | Type | Produces | Consumes | Special |
 |------|----------|----------|---------|
-| **Shipyard Station** | Hull plating, parts | Metals, circuits, weapons | — |
-| **Mining Station** | Raw ores, metals | Food, fuel, tools | — |
-| **Refinery Station** | Alloys, polymers, chemicals | Raw ores | Mid-chain |
-| **Trading Hub** | Everything at moderate levels | Everything at moderate levels | `isHub: true` |
-| **Military Station** | Weapon components, sensors | Fuel, rations, medical | `isMilitary: true` — contraband checks |
-| **Research Station** | AI, fusion cells, exotic matter | Rare earth, chemicals, food | — |
-| **Pirate Station** | Contraband (black market) | Fuel, weapons, parts | `blackMarket: true` |
-| **Luxury Resort Station** | Luxury goods, entertainment | Luxury food, consumer goods, personal tech | — |
-| **Fuel Depot** | Fuel, gases, coolant | Food, tools | — |
+| `shipyard_station` | Hull plating, parts | Metals, circuits, weapons | — |
+| `mining_station` | Raw ores, metals | Food, fuel, tools | — |
+| `refinery_station` | Alloys, polymers, chemicals | Raw ores | Mid supply chain |
+| `trading_hub` | Everything moderate | Everything moderate | `isHub: true` |
+| `military_station` | Weapon components, sensors | Fuel, rations, medical | `isMilitary: true` — contraband checks |
+| `research_station` | AI, fusion cells, exotic matter | Rare earth, chemicals, food | — |
+| `pirate_station` | Contraband | Fuel, weapons, parts | `blackMarket: true` |
+| `luxury_station` | Luxury goods, entertainment | Luxury food, consumer goods | — |
+| `fuel_depot` | Fuel, gases, coolant | Food, tools | — |
 
 ---
 
@@ -92,9 +181,9 @@ Tech World / Shipyard
         ↓ advanced technology, ship parts
 Colony Worlds, Military Stations, Research Stations
 
-Agricultural World → Food → everywhere
-Ocean / Gas World → Chemicals, Fuel → everywhere
-Pirate World / Station → Contraband → black market routes only
+Agricultural World  → Food        → everywhere
+Ocean / Gas World   → Chemicals, Fuel → everywhere
+Pirate World/Station → Contraband → black market routes only
 ```
 
 ---
@@ -102,166 +191,162 @@ Pirate World / Station → Contraband → black market routes only
 ## Price Engine
 
 ### Stock Scale
-- Each resource at each location has a **stock level: 0–100**
+- Each resource has a **stock level: 0–100**
 - 0 = completely depleted, 100 = fully stocked
 
 ### Starting Stock
-- **Produced resources**: start at 65–95 (high supply, cheap)
-- **Consumed resources**: start at 5–35 (low supply, expensive)
-- **Trading Hub resources**: start at 35–65 (moderate)
-- **Unstocked resources**: not available at that location
+| Condition | Starting Stock | Effect |
+|-----------|---------------|--------|
+| Produced resource | 65–95 | High supply, cheap |
+| Consumed resource | 5–35 | Low supply, expensive |
+| Trading Hub | 35–65 | Moderate |
+| Not produced/consumed | Not stocked | Not available |
 
 ### Price Formula
-Price is calculated from stock level using an inverse supply curve:
-
 ```
 norm = stock / 100
-mult = PRICE_MULT_MAX − (PRICE_MULT_MAX − PRICE_MULT_MIN) × norm
+mult = 2.5 − (2.5 − 0.4) × norm
 
-PRICE_MULT_MIN = 0.4   (40% of base price at full stock)
-PRICE_MULT_MAX = 2.5   (250% of base price at zero stock)
+Stock = 0   → price = basePrice × 2.5   (250% — severe shortage)
+Stock = 50  → price ≈ basePrice × 1.45
+Stock = 100 → price = basePrice × 0.4   (40% — oversupply)
 
 finalPrice = round(basePrice × mult)
 ```
 
-### Stock Change Over Time (every 300 ticks ≈ 5 seconds)
-- **Produced** resources: stock +0.03 per tick (replenish)
-- **Consumed** resources: stock −0.02 per tick (deplete)
-- **All resources**: random drift ±0.01 per tick (economic noise)
-- Player buying reduces stock → price rises
-- Player selling increases stock → price falls
+### Stock Changes (every 300 ticks ≈ 5 seconds at 60fps)
+| Event | Effect |
+|-------|--------|
+| Produced resource tick | stock +0.03 per tick |
+| Consumed resource tick | stock −0.02 per tick |
+| Random economic drift | stock ±0.01 per tick |
+| Player buys N units | stock −N, price recalculated immediately |
+| Player sells N units | stock +N, price recalculated immediately |
 
 ### Trend Indicators
-Each resource tracks whether its price is **▲ rising**, **▼ falling**, or **– stable** since last update.
-
----
-
-## Black Market
-
-- Contraband resources only appear at locations with `blackMarket: true`
-- Currently: `pirate_world` and `pirate_station`
-- Contraband is hidden from all other market listings
-- **Contraband check** triggers on docking at `military_station`:
-  - 70% detection chance if contraband in cargo
-  - On detection: cargo confiscated, fine = 150% of base value per unit
-  - Faction reputation −20 with the station's governing faction
-
----
-
-## Global Variables & State
-
-```js
-economyState          // { [systemKey]: { [resourceId]: { stock, price, trend } } }
-RESOURCES             // master resource catalogue
-LOCATION_PROFILES     // economic profiles per planet/station type
-```
-
-Economy persists in `economyState` during a session. For save/load, serialize `economyState` into `localStorage` alongside the pilot save.
-
----
-
-## Key Functions
-
-| Function | Description |
-|----------|-------------|
-| `initAllEconomy()` | Bootstrap — call once at game start from `engine.js` |
-| `initSystemEconomy(sysKey, profType)` | Initialise a single system's economy |
-| `tickEconomy()` | Called every frame from `update()` in `render.js` |
-| `getMarketListings()` | Returns sorted market array for current system |
-| `buyResource(id, qty)` | Execute a purchase, returns `{success, message, cost}` |
-| `sellResource(id, qty)` | Execute a sale, returns `{success, message, earned, profit}` |
-| `contrabandCheck()` | Run on dock at military stations, returns `{caught, fine, cargoLost}` |
-| `calcPrice(id, stock)` | Calculate price from stock level |
-| `getCargoCount()` | Returns total units currently in cargo |
-| `trendIcon(trend)` | Returns ▲ / ▼ / – string for UI |
-| `trendClass(trend)` | Returns CSS class name for trend colour |
-| `getSystemProfileType(sysKey)` | Maps systemKey → LOCATION_PROFILES key |
-
----
-
-## Integration Checklist
-
-### 1. Add to index.html
-```html
-<script src="js/economy.js"></script>
-<!-- Load after data.js, before engine.js -->
-```
-
-### 2. Call initAllEconomy() at game start
-In `engine.js`, wherever the game initialises (e.g. `loadPilot()` or `newGame()`):
-```js
-initAllEconomy();
-```
-
-### 3. Hook tickEconomy() into the game loop
-At the bottom of `update()` in `render.js`:
-```js
-if (typeof tickEconomy === 'function') tickEconomy();
-```
-
-### 4. Call contrabandCheck() on dock
-In `dockShip()` in `ui.js`, after dock is confirmed:
-```js
-const check = contrabandCheck();
-if (check.caught) {
-  showToast(`CONTRABAND SEIZED — Fined ${check.fine} Cr`);
-}
-```
-
-### 5. Wire up the Trading panel
-In `hubOpen('trading')` in `ui.js`, call `getMarketListings()` to populate the UI.
-Use `buyResource(id, qty)` and `sellResource(id, qty)` for buy/sell buttons.
-
-### 6. Map your systems
-Edit `getSystemProfileType()` in `economy.js` to assign each of your 13 SYSTEMS keys to a profile type.
-
-### 7. Add cargo capacity to player
-The economy expects `player.cargoCapacity` (integer, units). Add to `SHIP_TYPES` in `data.js`:
-```js
-cargoCapacity: 20  // default starter ship
-```
-
-### 8. Save/load economy state
-Add to pilot save in `engine.js`:
-```js
-// Saving
-save.economyState = JSON.parse(JSON.stringify(economyState));
-
-// Loading
-if (save.economyState) economyState = save.economyState;
-else initAllEconomy();
-```
+▲ rising &nbsp;·&nbsp; ▼ falling &nbsp;·&nbsp; – stable
 
 ---
 
 ## System Profile Mapping (13 Systems)
 
-Edit `getSystemProfileType()` in `economy.js` to confirm or adjust these assignments:
-
-| System Key | Suggested Profile | Rationale |
-|------------|------------------|-----------|
-| `sol` | `trading_hub` | Alpha Centauri — central crossroads |
-| `vega` | `industrial_world` | Heavy manufacturing |
-| `sirius` | `tech_world` | Advanced research and production |
-| `proxima` | `mining_world` | Resource extraction |
-| `barnard` | `agricultural_world` | Farming colony |
-| `wolf` | `colony_world` | Frontier settlement — needs everything |
-| `lalande` | `refinery_station` | Mid-chain processing |
-| `ross` | `military_station` | Fleet base |
-| `61cygni` | `research_station` | Science outpost |
-| `epsilon` | `mining_station` | Asteroid mining |
-| `tau` | `pirate_world` | Lawless black market |
-| `delta` | `luxury_station` | Wealthy resort |
-| `rigel` | `barren_world` | Exotic ore source |
+| System Key | Profile | System Name | Faction |
+|------------|---------|-------------|---------|
+| `sol` | `trading_hub` | Alpha Centauri | Federation |
+| `proxima` | `mining_world` | Proxima | Federation |
+| `barnard` | `agricultural_world` | Barnard | Federation |
+| `sirius` | `trading_hub` | Sirius | Federation |
+| `luyten` | `colony_world` | Luyten | Rebel |
+| `ross` | `military_station` | Ross | Rebel |
+| `vega` | `pirate_world` | Vega | Pirate |
+| `altair` | `military_station` | Altair | Federation |
+| `wolf` | `pirate_station` | Wolf | Pirate |
+| `epsilon` | `mining_station` | Epsilon | Rebel |
+| `kruger` | `refinery_station` | Kruger | Neutral |
+| `fomalhaut` | `trading_hub` | Fomalhaut | Neutral |
+| `deneb` | `pirate_world` | Deneb | Pirate |
 
 ---
 
-## Planned Enhancements (Not Yet Built)
+## Black Market
+
+- Contraband only at `blackMarket: true` locations: `pirate_world`, `pirate_station`
+- Hidden from all other market listings automatically
+- **Contraband check on dock** at `military_station`:
+  - 70% detection chance if contraband in cargo
+  - All contraband confiscated
+  - Fine = 150% of base value per unit
+  - Faction reputation −20
+
+---
+
+## Trading UI (ui.js)
+
+### State Variables
+```js
+_tradeCategory   // active category filter: 'all' | category id
+_tradeSelected   // selected resourceId or null
+_tradeQty        // current buy/sell quantity (default 1)
+```
+
+### Functions
+| Function | Description |
+|----------|-------------|
+| `renderTrading()` | Renders full market panel — called by `hubOpen('trading')` |
+| `tradingAdjQty(delta)` | Adjusts qty by delta, clamped to valid range |
+| `tradingSetMax(max)` | Sets qty to MAX BUY value |
+| `updateTradeCosts()` | Refreshes buy/sell cost display |
+| `tradingBuy()` | Executes buy via `buyResource()`, refreshes panel |
+| `tradingSell()` | Executes sell via `sellResource()`, shows profit/loss |
+
+### MAX BUY Calculation
+```js
+canBuyMax = Math.min(
+  Math.floor(state.credits / price),   // affordability
+  cargoMax - cargoCount,                // available cargo space
+  Math.floor(stock)                     // available stock
+)
+```
+
+---
+
+## Economy API Functions
+
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `initAllEconomy()` | void | Bootstrap all systems |
+| `initSystemEconomy(sysKey, profType)` | void | Init one system |
+| `tickEconomy()` | void | Called each frame |
+| `getMarketListings()` | Array | Market data for current system |
+| `buyResource(id, qty)` | `{success, message, cost}` | Execute purchase |
+| `sellResource(id, qty)` | `{success, message, earned, profit}` | Execute sale |
+| `contrabandCheck()` | `{caught, fine, cargoLost[]}` | Contraband detection |
+| `calcPrice(id, stock)` | number | Price from stock level |
+| `getCargoCount()` | number | Total cargo units held |
+| `trendIcon(trend)` | string | ▲ / ▼ / – |
+| `trendClass(trend)` | string | CSS class name |
+| `getSystemProfileType(sysKey)` | string | Profile key for system |
+
+### getMarketListings() return shape
+```js
+{
+  resourceId,   // e.g. 'grain'
+  name,         // e.g. 'Grain'
+  category,     // e.g. 'agricultural'
+  price,        // current price in Cr
+  stock,        // 0–100
+  trend,        // -1 | 0 | 1
+  cargoQty,     // units in player cargo
+  pricePaid,    // avg buy price (null if not held)
+  contraband    // true | false
+}
+```
+
+---
+
+## Save / Load
+
+```js
+// buildSaveData() in engine.js
+{
+  systemKey,
+  player: { ... },
+  state: { ..., cargo: { resourceId: { quantity, pricePaid } } },
+  economyState: { [systemKey]: { [resourceId]: { stock, price, trend } } }
+}
+
+// loadSaveData() in engine.js
+if (data.economyState) economyState = data.economyState;
+else initAllEconomy();
+```
+
+---
+
+## Planned Enhancements
 
 - NPC freighters flying trade routes (shifts stock at both ends automatically)
 - Market history charts (price over time per resource)
 - Player reputation affecting buy/sell prices at faction stations
-- Cargo insurance against pirate attack
 - Trade licenses required for certain resource categories
+- Shortage missions — low stock triggers special high-value delivery contracts
 - Per-faction import/export restrictions
-- Shortages triggering special high-value delivery missions
