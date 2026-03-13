@@ -771,6 +771,9 @@ function tick(now) {
     }
   }
 
+  // ── ECONOMY TICK ─────────────────────────────────────────────────────────────
+  if (typeof tickEconomy === 'function') tickEconomy();
+
   // Dock detection — station
   const dockDist=Math.sqrt(dist2(player,station));
   const dockBtn=document.getElementById("dockbutton");
