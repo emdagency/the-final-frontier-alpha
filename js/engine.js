@@ -181,6 +181,7 @@ const player = {
 const state = {
   credits:5000, fuel:10, maxFuel:10,
   kills:0,
+  cargo: {},   // ← add this if not present
   reputation:{federation:0,rebel:0,pirate:0,centaurian:0,neutral:0},
   missions:[],        // available missions at current location
   activeMission:null, // currently accepted mission
