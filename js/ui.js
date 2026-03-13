@@ -6,7 +6,16 @@ function dockShip(){
   const sysFac = SYSTEMS[systemKey].faction;
   const sysRep = state.reputation[sysFac] || 0;
   const stationHostile = !station.owned && sysRep <= REP_HOSTILE_THRESHOLD;
-  if(dockDist<=130 && !stationHostile){ state.dockedAt="station"; enterDock(); }
+  if(dockDist<=130 && !stationHostile){
+    state.dockedAt="station";
+    // ── Contraband check at military stations ──
+    const check = contrabandCheck();
+    if(check.caught){
+      const lost = check.cargoLost.map(c=>`${c.qty}× ${c.name}`).join(', ');
+      showToast(`🚨 CONTRABAND SEIZED: ${lost} — Fined ${check.fine.toLocaleString()} Cr`);
+    }
+    enterDock();
+  }
   else if(dockDist<=130 && stationHostile){ showToast("🚫 Hostile station — cannot dock!"); }
   else if(planetDist<=planet.r+60){ state.dockedAt="planet"; enterDock(); }
 }
