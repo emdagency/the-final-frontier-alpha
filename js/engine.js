@@ -29,6 +29,8 @@ function loadSaveData(data) {
   systemKey = data.systemKey || "sol";
   if (data.player) Object.assign(player, data.player);
   if (data.state) Object.assign(state, data.state);
+  if (data.economyState) economyState = data.economyState;
+  else initAllEconomy();   // ← add these two lines
 }
 function saveCurrentPilot(reason) {
   if (!currentPilotId) return;
@@ -126,6 +128,7 @@ function resetToFreshState() {
   state.tributeTimer = 0;
   state.exploredSystems = { sol: true }; // sol is where you start
   state.systemContents = {};
+  initAllEconomy();   // ← add this
 }
 
 function startGame() {
